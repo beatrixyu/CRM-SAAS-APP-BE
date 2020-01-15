@@ -2,10 +2,12 @@ const express = require("express");
 // install in the backend=>cd Backend=> npm i express
 //to install globle express, add sudo if cannot install=> sudo npm install -g expres
 const app = express(); //express is a function
+// const { registerSchema, loginSchema } = require("./Model/user");
 const user = require("./Model/user");
 const connectDB = require("./Config/db");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
+
 //DB Connection
 connectDB();
 
@@ -24,25 +26,26 @@ app.get("/", (req, res) => res.json({ message: "hello class" }));
 app.post("/register", async (req, res) => {
   //req and res, the postion of them cannot be changed
   //const { userName: panda, pass: 123456 } = req.body;
-  const { name, email, pass } = req.body;
+  let { name, email, pass } = req.body;
   /* body is an object
   req.body{
-    userName:"panda",
+    userName:"test",
     pass:"123456"
   } here can be checked in the postman*/
   //check in the postman
   // res.json({ status: "success" });
 
   // Store hash in your password DB.
-  let password = await bcrypt.hash(pass, saltRounds);
+  pass = await bcrypt.hash(pass, saltRounds); //resource: https://www.npmjs.com/package/bcrypt
 
   const newUser = new user({
     //connect user.js
     //property name should be exactly same from the userSchema
     name, //  =name:name, we use short hand while setting variable names on the req.body and user schema
     email, // =email:email,
-    pass: password //pass:pass
+    pass //pass:pass
   });
+
   //check the mongodb server status
   console.log(name, email, pass);
 
@@ -60,6 +63,33 @@ app.post("/register", async (req, res) => {
   // res.json({ status: "success" }); //send back http request to the server
 });
 
+app.post("/login", (req, res) => {
+  const { email, pass } = req.body;
+
+  user.findOne({ email }, (err, result) => {
+    console.log(email, pass);
+    if (err) {
+      res.json({ status: "failed", message: err });
+    } else if (!result) {
+      res.json({
+        status: "failed",
+        message: "Your pass or email is wrong!"
+      });
+    } else {
+      bcrypt.compare(pass, result.pass).then(function(ifPassCorrect) {
+        //result.pass is instead of hash
+        if (ifPassCorrect) {
+          res.json({ status: "success", message: "Successfully login!" });
+        } else {
+          res.json({
+            status: "failed",
+            message: "Your pass or email is not right!"
+          });
+        }
+      });
+    }
+  });
+});
 //server gets awake
 app.listen(port, () =>
   console.log(`CRM starts to work on port: http://localhost:${port}/`)
