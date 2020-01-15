@@ -4,6 +4,8 @@ const express = require("express");
 const app = express(); //express is a function
 const user = require("./Model/user");
 const connectDB = require("./Config/db");
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 //DB Connection
 connectDB();
 
@@ -17,12 +19,12 @@ const port = process.env.PORT || 5000;
 
 app.get("/", (req, res) => res.json({ message: "hello class" }));
 //it is router to get some reaction/feedback get send data as json back from server to client
+//res.json() extracts the JSON-formatted data from the Response object and converts the data into a JavaScript object.
 
-app.post("/register", (req, res) => {
+app.post("/register", async (req, res) => {
   //req and res, the postion of them cannot be changed
   //const { userName: panda, pass: 123456 } = req.body;
   const { name, email, pass } = req.body;
-  console.log(name, email, pass);
   /* body is an object
   req.body{
     userName:"panda",
@@ -31,18 +33,31 @@ app.post("/register", (req, res) => {
   //check in the postman
   // res.json({ status: "success" });
 
+  // Store hash in your password DB.
+  let password = await bcrypt.hash(pass, saltRounds);
+
   const newUser = new user({
     //connect user.js
     //property name should be exactly same from the userSchema
     name, //  =name:name, we use short hand while setting variable names on the req.body and user schema
     email, // =email:email,
-    pass //pass:pass
+    pass: password //pass:pass
   });
   //check the mongodb server status
   console.log(name, email, pass);
 
-  newUser.save();
-  res.json({ status: "success" });
+  newUser.save(err => {
+    if (err) {
+      res.status(404);
+      res.json({ status: "failed", message: err });
+    } else {
+      res.json({
+        status: "success",
+        message: "Congrats! you created a new account!"
+      });
+    }
+  }); //save funtion is to save the info to database
+  // res.json({ status: "success" }); //send back http request to the server
 });
 
 //server gets awake

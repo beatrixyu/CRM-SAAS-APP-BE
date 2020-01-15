@@ -1,7 +1,9 @@
 const mongoose = require("mongoose");
 
 //collection
+//schema is a layout for object
 const userSchema = new mongoose.Schema({
+  // _id: mongoose.Types.ObjectId,
   name: {
     type: String,
     required: [true, "Name is required"]
