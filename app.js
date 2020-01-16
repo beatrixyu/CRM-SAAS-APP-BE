@@ -7,6 +7,9 @@ const user = require("./Model/user");
 const connectDB = require("./Config/db");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
+let isLoggedIn = false;
+const jwt = require("jsonwebtoken");
+const jwtSecretKey = "Z!EX=JzRP6AY8H&Z";
 
 //DB Connection
 connectDB();
@@ -63,10 +66,57 @@ app.post("/register", async (req, res) => {
   // res.json({ status: "success" }); //send back http request to the server
 });
 
+const checkAuth = (req, res) => {
+  // check JWT
+  const userToken = req.header("x-auth-token");
+  if (!userToken) {
+    return res.status(401).json({
+      status: "false",
+      message: "Token cannot be found, Authotization problem 5012"
+    });
+  }
+
+  //use try and catch to identify the authotization problem and catch error
+  try {
+    jwt.verify(userToken, jwtSecretKey, (fail, decodedPayload) => {
+      if (fail) {
+        res.status(401).json({
+          status: "failed",
+          message: "Authotization problem 5013"
+        });
+      } else {
+        res.userId = decodedPayload.id; //id is token id from JWT official website
+        next(); //means Authotization is done
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: error });
+  }
+};
+
+const signToken = id => {
+  return jwt.sign({ id }, jwtSecretKey, { expiresIn: 3600000 }); //3600000 is one hour
+  //JWT will ask client userID once not keep asking again and again
+};
+
+//Routing
+app.get("/inbox", checkAuth, (req, res) => {
+  //()=>checkAuth("bea") is a call back function to make this middleware function work not immediatelys
+  // if (isLoggedIn) {
+  res.json({ message: `Hello, your user id is ${res.userId}` }); //userId is id pf token
+  // } else {
+  //   res.json({
+  //     message: "You are not welcomed!"
+  //   });
+  // }
+  console.log(result);
+});
+
 app.post("/login", (req, res) => {
   const { email, pass } = req.body;
 
   user.findOne({ email }, (err, result) => {
+    //use findOne to find a single object
     console.log(email, pass);
     if (err) {
       res.json({ status: "failed", message: err });
@@ -76,10 +126,18 @@ app.post("/login", (req, res) => {
         message: "Your pass or email is wrong!"
       });
     } else {
-      bcrypt.compare(pass, result.pass).then(function(ifPassCorrect) {
+      bcrypt.compare(pass, result.pass).then(async ifPassCorrect => {
         //result.pass is instead of hash
         if (ifPassCorrect) {
-          res.json({ status: "success", message: "Successfully login!" });
+          isLoggedIn = true;
+
+          // () => signToken();  to create the JWT token or
+          const token = await signToken(result.id); //id of the client user
+          res.json({
+            status: "success",
+            message: "Successfully login!",
+            token
+          });
         } else {
           res.json({
             status: "failed",
@@ -90,6 +148,7 @@ app.post("/login", (req, res) => {
     }
   });
 });
+
 //server gets awake
 app.listen(port, () =>
   console.log(`CRM starts to work on port: http://localhost:${port}/`)
@@ -97,4 +156,19 @@ app.listen(port, () =>
 
 /* 1.build app.js to install expressjs (app) for listening the res,req ---> connect with postman 
 2. build bd.js in the config folder and install mongoose to connect MongoDB server
-3. build user.js in the Model folder to create userSchema to name, email, pass checking  */
+3. build user.js in the Model folder to create userSchema to name, email, pass checking  
+
+https://docs.google.com/document/d/1nYYxgqhuh17LlUpC1I4kcZRSkgQRJ2uoLQvlrTgLdVg/edit?usp=sharing
+*/
+
+/* JWT 
+ 
+ 1. nom install
+ 2. import require
+ 3.create serectkey ---can use password generator
+ 4.create tokenfunc
+ 5. set variable named 'isLoggedIn=false" but has to be set up to be let, cannot be const
+6. call func login
+7. postman to click login part
+8. send data to mongodb and then get token 
+9. copy and paste the token inside of the JWT page */
