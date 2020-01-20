@@ -66,7 +66,7 @@ app.post("/register", async (req, res) => {
   // res.json({ status: "success" }); //send back http request to the server
 });
 
-const checkAuth = (req, res) => {
+const checkAuth = (req, res, next) => {
   // check JWT
   const userToken = req.header("x-auth-token");
   if (!userToken) {
@@ -90,7 +90,7 @@ const checkAuth = (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ status: "error", message: error });
+    res.status(500).json({ status: "error mistake", message: error });
   }
 };
 
@@ -109,7 +109,7 @@ app.get("/inbox", checkAuth, (req, res) => {
   //     message: "You are not welcomed!"
   //   });
   // }
-  console.log(result);
+  console.log(res);
 });
 
 app.post("/login", (req, res) => {
@@ -163,12 +163,60 @@ https://docs.google.com/document/d/1nYYxgqhuh17LlUpC1I4kcZRSkgQRJ2uoLQvlrTgLdVg/
 
 /* JWT 
  
- 1. nom install
+ 1. npm install: npm i jsonwebtoken
  2. import require
- 3.create serectkey ---can use password generator
- 4.create tokenfunc
+ 3.create secrectkey ---can use password generator
+ 4.create tokenfunc:
+   const signToken = id => {
+  return jwt.sign({ id }, jwtSecretKey, { expiresIn: 3600000 }); //3600000 is one hour
+};
+
  5. set variable named 'isLoggedIn=false" but has to be set up to be let, cannot be const
-6. call func login
-7. postman to click login part
-8. send data to mongodb and then get token 
-9. copy and paste the token inside of the JWT page */
+
+6. call func login:
+   app.post("/login", (req, res) => {
+  const { email, pass } = req.body;
+
+  user.findOne({ email }, (err, result) => {
+    //use findOne to find a single object
+    console.log(email, pass);
+    if (err) {
+      res.json({ status: "failed", message: err });
+    } else if (!result) {
+      res.json({
+        status: "failed",
+        message: "Your pass or email is wrong!"
+      });
+    } else {
+      bcrypt.compare(pass, result.pass).then(async ifPassCorrect => {
+        //result.pass is instead of hash
+        if (ifPassCorrect) {
+          isLoggedIn = true;
+
+          // () => signToken();  to create the JWT token or
+          const token = await signToken(result.id); //id of the client user
+          res.json({
+            status: "success",
+            message: "Successfully login!",
+            token
+          });
+        } else {
+          res.json({
+            status: "failed",
+            message: "Your pass or email is not right!"
+          });
+        }
+      });
+    }
+  });
+});
+
+
+7. In the postman to set register, method:"get" 
+                  to set login part, method:"post"
+8. send data to mongodb and then get token value
+9. copy and paste the token inside of the JWT page 
+10. create new router in the postman: http://localhost:5000/inbox Method="Get"
+11. click Headers and write ""key":"x-auth-token","value":put the token we got from login", Content-Type:application/json
+12. click send to get userId 
+*/
