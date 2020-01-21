@@ -10,6 +10,8 @@ const saltRounds = 10;
 let isLoggedIn = false;
 const jwt = require("jsonwebtoken");
 const jwtSecretKey = "Z!EX=JzRP6AY8H&Z";
+const port = process.env.PORT || 5000;
+// process.env.PORT: In many environments(e.g.Heroku), and as a convention, you can set the environment variable PORT to tell your web server what port to listen on.
 
 //DB Connection
 connectDB();
@@ -19,8 +21,6 @@ app.use(express.json()); //body parse middleware of Express
  express.json() is a built -in middleware function.It parses incoming requests with JSON payloads and is based on body - parser.
 Returns middleware that only parses JSON and only looks at requests where the Content - Type header matches the type option.
  */
-const port = process.env.PORT || 5000;
-// process.env.PORT: In many environments(e.g.Heroku), and as a convention, you can set the environment variable PORT to tell your web server what port to listen on.
 
 app.get("/", (req, res) => res.json({ message: "hello class" }));
 //it is router to get some reaction/feedback get send data as json back from server to client
@@ -29,6 +29,7 @@ app.get("/", (req, res) => res.json({ message: "hello class" }));
 app.post("/register", async (req, res) => {
   //req and res, the postion of them cannot be changed
   //const { userName: panda, pass: 123456 } = req.body;
+  //async before function returns a promise
   let { name, email, pass } = req.body;
   /* body is an object
   req.body{
@@ -40,6 +41,7 @@ app.post("/register", async (req, res) => {
 
   // Store hash in your password DB.
   pass = await bcrypt.hash(pass, saltRounds); //resource: https://www.npmjs.com/package/bcrypt
+  // wait until this promise resolves
 
   const newUser = new user({
     //connect user.js
@@ -103,7 +105,7 @@ const signToken = id => {
 app.get("/inbox", checkAuth, (req, res) => {
   //()=>checkAuth("bea") is a call back function to make this middleware function work not immediatelys
   // if (isLoggedIn) {
-  res.json({ message: `Hello, your user id is ${res.userId}` }); //userId is id pf token
+  res.json({ message: `Hello, your user id is ${res.userId}` }); //userId is id of token
   // } else {
   //   res.json({
   //     message: "You are not welcomed!"
@@ -217,6 +219,6 @@ https://docs.google.com/document/d/1nYYxgqhuh17LlUpC1I4kcZRSkgQRJ2uoLQvlrTgLdVg/
 8. send data to mongodb and then get token value
 9. copy and paste the token inside of the JWT page 
 10. create new router in the postman: http://localhost:5000/inbox Method="Get"
-11. click Headers and write ""key":"x-auth-token","value":put the token we got from login", Content-Type:application/json
+11. click Headers and write "key":"x-auth-token","value":put the token we got from login", Content-Type:application/json
 12. click send to get userId 
 */
